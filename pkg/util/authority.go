@@ -15,8 +15,8 @@ var myKey = []byte("Soft-ware-Engineering-Team-Project-Children-Math")
 
 func GenerateToken(username string) (string, error) {
 	// 令牌的有限时间为 24 小时
-	//expireTime := time.Now().Add(time.Hour * 24)
-	expireTime := time.Now().Add(time.Second * 30)
+	expireTime := time.Now().Add(time.Hour * 24)
+	//expireTime := time.Now().Add(time.Second * 30)
 
 	uerClaim := &UserClaims{
 		UserName: username,
