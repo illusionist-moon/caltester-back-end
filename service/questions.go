@@ -29,6 +29,12 @@ func GenerateQuestions(operator string) []*Questions {
 		n1 := r.Uint32() % max
 		var n2 uint32
 		if operator == "div" || operator == "minus" {
+			for {
+				if n1 != 0 {
+					break
+				}
+				n1 = r.Uint32() % max
+			}
 			n2 = r.Uint32() % n1
 		} else {
 			n2 = r.Uint32() % max

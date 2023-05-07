@@ -1,7 +1,7 @@
 package util
 
 import (
-	"fmt"
+	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"time"
 )
@@ -15,7 +15,9 @@ var myKey = []byte("Soft-ware-Engineering-Team-Project-Children-Math")
 
 func GenerateToken(username string) (string, error) {
 	// 令牌的有限时间为 24 小时
-	expireTime := time.Now().Add(time.Hour * 24)
+	//expireTime := time.Now().Add(time.Hour * 24)
+	expireTime := time.Now().Add(time.Second * 30)
+
 	uerClaim := &UserClaims{
 		UserName: username,
 		StandardClaims: jwt.StandardClaims{
@@ -31,22 +33,17 @@ func GenerateToken(username string) (string, error) {
 }
 
 func AnalyseToken(tokenString string) (*UserClaims, error) {
-	UserClaims := new(UserClaims)
-	claims, err := jwt.ParseWithClaims(tokenString, UserClaims, func(token *jwt.Token) (interface{}, error) {
+	claims := new(UserClaims)
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		return myKey, nil
 	})
-	if err != nil {
-		return nil, err
+	if token != nil {
+		if claims.ExpiresAt < time.Now().Unix() {
+			return nil, errors.New("timeout")
+		}
+		if !token.Valid {
+			return nil, errors.New("analyse token failed")
+		}
 	}
-	if !claims.Valid {
-		return nil, fmt.Errorf("analyse Token error")
-	}
-	return UserClaims, nil
+	return claims, err
 }
-
-//
-//func main() {
-//	tokenString, _ := GenerateToken("Ztyx")
-//	fmt.Println(tokenString)
-//	fmt.Println(AnalyseToken(tokenString))
-//}

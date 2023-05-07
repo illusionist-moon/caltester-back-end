@@ -31,6 +31,7 @@ func InitRouter() *gin.Engine {
 		authUser.GET("/wrong-list")
 		authUser.DELETE("/delete")
 
+		authUser.GET("/logout", api.Logout)
 		// for test ...
 		authUser.POST("/test", api.Test)
 	}

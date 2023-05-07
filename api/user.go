@@ -23,7 +23,7 @@ func Login(ctx *gin.Context) {
 		Password: password,
 	}); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.INVALID_PARAMS,
+			"code": e.InvalidParams,
 			"msg":  err.Error(),
 		})
 		return
@@ -36,14 +36,14 @@ func Login(ctx *gin.Context) {
 		// 记录未找到的错误，即用户不存在
 		if err == gorm.ErrRecordNotFound {
 			ctx.JSON(http.StatusOK, gin.H{
-				"code": e.ERROR_NOT_EXIST_USER,
-				"msg":  e.GetMsg(e.ERROR_NOT_EXIST_USER),
+				"code": e.ErrorNotExistUser,
+				"msg":  e.GetMsg(e.ErrorNotExistUser),
 			})
 			return
 		}
 		// 其他错误，未知
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ERROR,
+			"code": e.Error,
 			"msg":  "Get User Error: " + err.Error(),
 		})
 		return
@@ -52,8 +52,8 @@ func Login(ctx *gin.Context) {
 	// 校验密码
 	if password != user.Password {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ERROR_INCORRECT_PWD,
-			"msg":  e.GetMsg(e.ERROR_INCORRECT_PWD),
+			"code": e.ErrorIncorrectPwd,
+			"msg":  e.GetMsg(e.ErrorIncorrectPwd),
 		})
 		return
 	}
@@ -67,8 +67,8 @@ func Login(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{
-		"code":  e.SUCCESS,
-		"msg":   e.GetMsg(e.SUCCESS),
+		"code":  e.Success,
+		"msg":   e.GetMsg(e.Success),
 		"token": token,
 	})
 }
@@ -86,7 +86,7 @@ func Register(ctx *gin.Context) {
 		Password: password,
 	}); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.INVALID_PARAMS,
+			"code": e.InvalidParams,
 			"msg":  err.Error(),
 		})
 		return
@@ -98,23 +98,23 @@ func Register(ctx *gin.Context) {
 	if err != nil {
 		// 其他错误，未知
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ERROR,
+			"code": e.Error,
 			"msg":  "Get User Error: " + err.Error(),
 		})
 		return
 	}
 	if count > 0 {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ERROR_EXIST_USER,
-			"msg":  e.GetMsg(e.ERROR_EXIST_USER),
+			"code": e.ErrorExistUser,
+			"msg":  e.GetMsg(e.ErrorExistUser),
 		})
 		return
 	}
 
 	if password != rePassword {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ERROR_PWD_NOT_EQUAL,
-			"msg":  e.GetMsg(e.ERROR_PWD_NOT_EQUAL),
+			"code": e.ErrorPwdNotEqual,
+			"msg":  e.GetMsg(e.ErrorPwdNotEqual),
 		})
 		return
 	}
@@ -127,14 +127,14 @@ func Register(ctx *gin.Context) {
 	err = models.DB.Create(user).Error
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ERROR,
+			"code": e.Error,
 			"msg":  "Create User Error: " + err.Error(),
 		})
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{
-		"code": e.SUCCESS,
-		"msg":  e.GetMsg(e.SUCCESS),
+		"code": e.Success,
+		"msg":  e.GetMsg(e.Success),
 	})
 }
 
@@ -142,11 +142,10 @@ func Test(ctx *gin.Context) {
 	fmt.Println("ok ok ok !!!")
 }
 
-//func Logout(ctx *gin.Context) {
-//	code := e.SUCCESS
-//	ctx.JSON(http.StatusOK, gin.H{
-//		"code": code,
-//		"msg":  e.GetMsg(code),
-//		"data": "success",
-//	})
-//}
+func Logout(ctx *gin.Context) {
+	code := e.Success
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": code,
+		"msg":  e.GetMsg(code),
+	})
+}

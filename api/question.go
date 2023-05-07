@@ -11,7 +11,7 @@ func GetQuestions(ctx *gin.Context) {
 	operator, ok := ctx.GetQuery("op")
 	if !ok {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.INVALID_PARAMS,
+			"code": e.InvalidParams,
 			"msg":  "未传入运算符",
 			"data": nil,
 		})
@@ -20,7 +20,7 @@ func GetQuestions(ctx *gin.Context) {
 
 	if operator != "plus" && operator != "minus" && operator != "multi" && operator != "div" {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.INVALID_PARAMS,
+			"code": e.InvalidParams,
 			"msg":  "非法运算符",
 			"data": nil,
 		})
@@ -28,8 +28,8 @@ func GetQuestions(ctx *gin.Context) {
 	}
 	data := service.GenerateQuestions(operator)
 	ctx.JSON(http.StatusOK, gin.H{
-		"code": e.SUCCESS,
-		"msg":  e.GetMsg(e.SUCCESS),
+		"code": e.Success,
+		"msg":  e.GetMsg(e.Success),
 		"data": map[string]any{
 			"count":     10,
 			"operator":  operator,

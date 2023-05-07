@@ -5,7 +5,6 @@ import (
 	"ChildrenMath/pkg/util"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"time"
 )
 
 func AuthUserCheck() gin.HandlerFunc {
@@ -13,18 +12,17 @@ func AuthUserCheck() gin.HandlerFunc {
 		auth := ctx.GetHeader("Authorization")
 		userClaim, err := util.AnalyseToken(auth)
 		if err != nil {
-			ctx.JSON(http.StatusOK, gin.H{
-				"code": e.ErrorAuthCheckTokenFail,
-				"msg":  e.GetMsg(e.ErrorAuthCheckTokenFail),
-			})
-			ctx.Abort()
-			return
-		}
-		if time.Now().Unix() > userClaim.ExpiresAt {
-			ctx.JSON(http.StatusOK, gin.H{
-				"code": e.ErrorAuthCheckTokenTimeout,
-				"msg":  e.GetMsg(e.ErrorAuthCheckTokenTimeout),
-			})
+			if err.Error() == "timeout" {
+				ctx.JSON(http.StatusOK, gin.H{
+					"code": e.ErrorAuthCheckTokenTimeout,
+					"msg":  e.GetMsg(e.ErrorAuthCheckTokenTimeout),
+				})
+			} else {
+				ctx.JSON(http.StatusOK, gin.H{
+					"code": e.ErrorAuthCheckTokenFail,
+					"msg":  e.GetMsg(e.ErrorAuthCheckTokenFail),
+				})
+			}
 			ctx.Abort()
 			return
 		}
