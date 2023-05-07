@@ -12,7 +12,7 @@ func Cors() gin.HandlerFunc {
 		method := ctx.Request.Method
 		origin := ctx.Request.Header.Get("Origin")
 		var headerKeys []string
-		for k, _ := range ctx.Request.Header {
+		for k := range ctx.Request.Header {
 			headerKeys = append(headerKeys, k)
 		}
 		headerStr := strings.Join(headerKeys, ",")
