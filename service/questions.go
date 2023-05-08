@@ -15,7 +15,7 @@ type Questions struct {
 	Num2 uint32
 }
 
-// api保证了传入该函数的operator一定是正确且合法的
+// GenerateQuestions api保证了传入该函数的operator一定是正确且合法的
 func GenerateQuestions(operator string) []*Questions {
 	var max uint32
 	if operator == "multi" {

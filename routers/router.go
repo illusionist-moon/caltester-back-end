@@ -18,15 +18,11 @@ func InitRouter() *gin.Engine {
 	r.POST("/login", api.Login)
 
 	// 用户组私有
-	authUser := r.Group("user")
+	authUser := r.Group("/user")
 	authUser.Use(middlewares.AuthUserCheck())
 	{
-		question := authUser.Group("question")
-		{
-			question.GET("/", api.GetQuestions)
-
-			question.POST("/judgement")
-		}
+		authUser.GET("/question", api.GetQuestions)
+		authUser.POST("/judgement")
 
 		authUser.GET("/wrong-list")
 		authUser.DELETE("/delete")
