@@ -1,5 +1,7 @@
 package models
 
+import "gorm.io/gorm"
+
 type Problem struct {
 	ID       int    `json:"id" gorm:"column:id;primary_key;auto_increment"`
 	UserName string `json:"username" gorm:"column:user_name"`
@@ -8,7 +10,7 @@ type Problem struct {
 	Operator string `json:"operator" gorm:"column:operator;type:char(1)"`
 }
 
-func AddProblem(username, operator string, num1, num2 int) error {
+func AddProblem(tx *gorm.DB, username, operator string, num1, num2 int) error {
 	var op string
 	switch operator {
 	case "plus":
@@ -22,14 +24,14 @@ func AddProblem(username, operator string, num1, num2 int) error {
 	default:
 		// 事实上，这一步永远不会走到
 	}
-	tx := DB.Create(&Problem{
+	err := tx.Create(&Problem{
 		UserName: username,
 		Num1:     num1,
 		Num2:     num2,
 		Operator: op,
-	})
-	if tx.Error != nil {
-		return tx.Error
+	}).Error
+	if err != nil {
+		return err
 	}
 	return nil
 }

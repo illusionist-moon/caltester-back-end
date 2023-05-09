@@ -1,5 +1,7 @@
 package models
 
+import "gorm.io/gorm"
+
 type User struct {
 	UserName string `json:"username" gorm:"column:user_name;primary_key" binding:"required,alphanum,min=1,max=20,excludes= "`
 	Password string `json:"password" gorm:"column:password" binding:"required,min=8"`
@@ -17,14 +19,15 @@ func Exists(username string) (string, bool) {
 	}
 }
 
-func AddPoints(username string, points int) error {
+func AddPoints(tx *gorm.DB, username string, points int) error {
 	var target User
-	tx := DB.Take(&target, "user_name = ?", username)
-	if tx.Error != nil {
-		return tx.Error
+	err := tx.Where("user_name = ?", username).Take(&target).Error
+	//err := tx.Take(&target, username).Error
+	if err != nil {
+		return err
 	}
 	target.Points += points
-	DB.Select("Points").Save(&target)
+	tx.Select("Points").Save(&target)
 	return nil
 }
 

@@ -90,6 +90,7 @@ func Judgement(ctx *gin.Context) {
 		return
 	}
 
+	// 开启一个事务，保证错题库和积分的一致性
 	tx := models.DB.Begin()
 	var (
 		count int
@@ -125,7 +126,7 @@ func Judgement(ctx *gin.Context) {
 		if correct {
 			count++
 		} else {
-			err = models.AddProblem(username, op, nums[0], nums[1])
+			err = models.AddProblem(tx, username, op, nums[0], nums[1])
 			if err != nil {
 				tx.Rollback()
 				ctx.JSON(http.StatusOK, gin.H{
@@ -137,7 +138,7 @@ func Judgement(ctx *gin.Context) {
 			}
 		}
 	}
-	err = models.AddPoints(username, count)
+	err = models.AddPoints(tx, username, count)
 	if err != nil {
 		tx.Rollback()
 		ctx.JSON(http.StatusOK, gin.H{

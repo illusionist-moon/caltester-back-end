@@ -9,7 +9,7 @@ const (
 	MultiMax = 10
 	OtherMax = 100
 
-	Count = 10
+	Count = 3
 )
 
 type Questions struct {
