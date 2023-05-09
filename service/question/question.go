@@ -1,4 +1,4 @@
-package service
+package question
 
 import (
 	"math/rand"
@@ -6,8 +6,10 @@ import (
 )
 
 const (
-	Multi_MAX = 10
-	OTHER_MAX = 100
+	MultiMax = 10
+	OtherMax = 100
+
+	Count = 3
 )
 
 type Questions struct {
@@ -19,13 +21,13 @@ type Questions struct {
 func GenerateQuestions(operator string) []*Questions {
 	var max uint32
 	if operator == "multi" {
-		max = Multi_MAX
+		max = MultiMax
 	} else {
-		max = OTHER_MAX
+		max = OtherMax
 	}
 	ans := make([]*Questions, 0)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for i := 0; i < 10; i++ {
+	for i := 0; i < Count; i++ {
 		n1 := r.Uint32() % max
 		var n2 uint32
 		if operator == "div" || operator == "minus" {
@@ -53,4 +55,20 @@ func GenerateQuestions(operator string) []*Questions {
 		})
 	}
 	return ans
+}
+
+func Judge(nums [3]int, op string) bool {
+	switch op {
+	case "plus":
+		return nums[0]+nums[1] == nums[2]
+	case "minus":
+		return nums[0]-nums[1] == nums[2]
+	case "multi":
+		return nums[0]*nums[1] == nums[2]
+	case "div":
+		return nums[0]/nums[1] == nums[2]
+	default:
+		// 事实上，这一步永远不会走到
+		return false
+	}
 }

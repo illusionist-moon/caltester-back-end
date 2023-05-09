@@ -4,9 +4,7 @@ import (
 	"ChildrenMath/models"
 	"ChildrenMath/pkg/e"
 	"ChildrenMath/pkg/util"
-	"fmt"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	"strings"
 )
@@ -29,28 +27,17 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
-	var user models.User
-	// 按照 用户名 进行查找
-	err := models.DB.Where("user_name = ?", username).First(&user).Error
-	if err != nil {
-		// 记录未找到的错误，即用户不存在
-		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(http.StatusOK, gin.H{
-				"code": e.ErrorNotExistUser,
-				"msg":  e.GetMsg(e.ErrorNotExistUser),
-			})
-			return
-		}
-		// 其他错误，未知
+	getPassword, exists := models.Exists(username)
+	if !exists {
 		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.Error,
-			"msg":  "Get User Error: " + err.Error(),
+			"code": e.ErrorNotExistUser,
+			"msg":  e.GetMsg(e.ErrorNotExistUser),
 		})
 		return
 	}
 
 	// 校验密码
-	if password != user.Password {
+	if password != getPassword {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.ErrorIncorrectPwd,
 			"msg":  e.GetMsg(e.ErrorIncorrectPwd),
@@ -92,18 +79,9 @@ func Register(ctx *gin.Context) {
 		return
 	}
 
-	var count int64
-	// 判断用户名是否已经存在
-	err := models.DB.Where("user_name = ?", username).Model(new(models.User)).Count(&count).Error
-	if err != nil {
-		// 其他错误，未知
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.Error,
-			"msg":  "Get User Error: " + err.Error(),
-		})
-		return
-	}
-	if count > 0 {
+	// 判断用户是否存在
+	_, exists := models.Exists(username)
+	if exists {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.ErrorExistUser,
 			"msg":  e.GetMsg(e.ErrorExistUser),
@@ -119,12 +97,21 @@ func Register(ctx *gin.Context) {
 		return
 	}
 
-	user := &models.User{
-		UserName: username,
-		Password: password,
-		Points:   0,
-	}
-	err = models.DB.Create(user).Error
+	//user := &models.User{
+	//	UserName: username,
+	//	Password: password,
+	//	Points:   0,
+	//}
+	//err := models.DB.Create(user).Error
+	//if err != nil {
+	//	ctx.JSON(http.StatusOK, gin.H{
+	//		"code": e.Error,
+	//		"msg":  "Create User Error: " + err.Error(),
+	//	})
+	//	return
+	//}
+
+	err := models.CreateUser(username, password)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
@@ -132,14 +119,11 @@ func Register(ctx *gin.Context) {
 		})
 		return
 	}
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"code": e.Success,
 		"msg":  e.GetMsg(e.Success),
 	})
-}
-
-func Test(ctx *gin.Context) {
-	fmt.Println("ok ok ok !!!")
 }
 
 func Logout(ctx *gin.Context) {

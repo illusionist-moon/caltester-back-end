@@ -22,14 +22,12 @@ func InitRouter() *gin.Engine {
 	authUser.Use(middlewares.AuthUserCheck())
 	{
 		authUser.GET("/question", api.GetQuestions)
-		authUser.POST("/judgement")
+		authUser.POST("/judgement", api.Judgement)
 
 		authUser.GET("/wrong-list")
 		authUser.DELETE("/delete")
 
 		authUser.GET("/logout", api.Logout)
-		// for test ...
-		authUser.POST("/test", api.Test)
 	}
 
 	return r
