@@ -29,7 +29,7 @@ type RedoProblem struct {
 	ID       int    `json:"id" gorm:"column:id;primary_key;auto_increment"`
 	Num1     int    `json:"num1" gorm:"column:num1"`
 	Num2     int    `json:"num2" gorm:"column:num2"`
-	Operator string `json:"operator" gorm:"column:operator;type:char(1)"`
+	Operator string `json:"op" gorm:"column:operator;type:char(1)"`
 }
 
 func AddProblem(db *gorm.DB, username, op string, num1, num2, wrongAns int) error {
