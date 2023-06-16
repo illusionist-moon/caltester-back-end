@@ -1,13 +1,14 @@
 package main
 
 import (
-	"ChildrenMath/routers"
+	"ChildrenMath/pkg/settings"
+	"ChildrenMath/router"
 )
 
 func main() {
-	r := routers.InitRouter()
+	r := router.InitRouter()
 
-	err := r.Run(":80")
+	err := r.Run(":" + settings.HttpPort)
 	if err != nil {
 		panic(err)
 	}

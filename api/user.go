@@ -4,6 +4,7 @@ import (
 	"ChildrenMath/models"
 	"ChildrenMath/pkg/e"
 	"ChildrenMath/pkg/util"
+	"ChildrenMath/pkg/validation"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
@@ -13,21 +14,19 @@ func Login(ctx *gin.Context) {
 	username := strings.TrimSpace(ctx.PostForm("username"))
 	password := ctx.PostForm("password")
 
-	// 判断
-	// 用户名格式：长度在 1~20 之间，不能包含空格
-	// 用户密码格式：长度大于等于 8
-	if err := ctx.ShouldBind(&models.User{
+	verify := &validation.UserLogin{
 		UserName: username,
 		Password: password,
-	}); err != nil {
+	}
+	if err := ctx.ShouldBind(verify); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
-			"msg":  err.Error(),
+			"msg":  validation.GetValidMsg(err, verify),
 		})
 		return
 	}
 
-	getPassword, exists := models.Exists(username)
+	getPassword, exists := models.Exists(models.DB, username)
 	if !exists {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.ErrorNotExistUser,
@@ -65,22 +64,21 @@ func Register(ctx *gin.Context) {
 	password := ctx.PostForm("password")
 	rePassword := ctx.PostForm("re-password")
 
-	// 判断
-	// 用户名格式：长度在 1~20 之间，不能包含空格
-	// 用户密码格式：长度大于等于 8
-	if err := ctx.ShouldBind(&models.User{
-		UserName: username,
-		Password: password,
-	}); err != nil {
+	verify := &validation.UserRegister{
+		UserName:   username,
+		Password:   password,
+		RePassword: rePassword,
+	}
+	if err := ctx.ShouldBind(verify); err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
-			"msg":  err.Error(),
+			"msg":  validation.GetValidMsg(err, verify),
 		})
 		return
 	}
 
 	// 判断用户是否存在
-	_, exists := models.Exists(username)
+	_, exists := models.Exists(models.DB, username)
 	if exists {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.ErrorExistUser,
@@ -89,29 +87,7 @@ func Register(ctx *gin.Context) {
 		return
 	}
 
-	if password != rePassword {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ErrorPwdNotEqual,
-			"msg":  e.GetMsg(e.ErrorPwdNotEqual),
-		})
-		return
-	}
-
-	//user := &models.User{
-	//	UserName: username,
-	//	Password: password,
-	//	Points:   0,
-	//}
-	//err := models.DB.Create(user).Error
-	//if err != nil {
-	//	ctx.JSON(http.StatusOK, gin.H{
-	//		"code": e.Error,
-	//		"msg":  "Create User Error: " + err.Error(),
-	//	})
-	//	return
-	//}
-
-	err := models.CreateUser(username, password)
+	err := models.CreateUser(models.DB, username, password)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
@@ -131,5 +107,49 @@ func Logout(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"code": code,
 		"msg":  e.GetMsg(code),
+	})
+}
+
+func GetPointsRank(ctx *gin.Context) {
+	val, exist := ctx.Get("username")
+	// 下面这种情况理论是不存在，但还是需要写出处理
+	if !exist {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.ErrorNotExistUser,
+			"data": nil,
+			"msg":  "用户获取出现问题",
+		})
+		return
+	}
+	username := val.(string)
+
+	ownPoints, err1 := models.GetUserPoints(models.DB, username)
+	if err1 != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"data": nil,
+			"msg":  "个人积分拉取失败",
+		})
+		return
+	}
+
+	rank, err2 := models.GetPointsRank(models.DB)
+	if err2 != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"data": nil,
+			"msg":  "积分排名拉取失败",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": e.Success,
+		"data": map[string]any{
+			"max_count":  models.RankSize,
+			"rank":       rank,
+			"own_points": ownPoints,
+		},
+		"msg": e.GetMsg(e.Success),
 	})
 }

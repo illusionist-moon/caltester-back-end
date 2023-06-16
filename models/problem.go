@@ -7,10 +7,11 @@ type Problem struct {
 	UserName string `json:"username" gorm:"column:user_name"`
 	Num1     int    `json:"num1" gorm:"column:num1"`
 	Num2     int    `json:"num2" gorm:"column:num2"`
+	WrongAns int    `json:"wrong_ans" gorm:"column:wrong_ans"`
 	Operator string `json:"operator" gorm:"column:operator;type:char(1)"`
 }
 
-func AddProblem(tx *gorm.DB, username, operator string, num1, num2 int) error {
+func AddProblem(db *gorm.DB, username, operator string, num1, num2, wrongAns int) error {
 	var op string
 	switch operator {
 	case "plus":
@@ -24,10 +25,11 @@ func AddProblem(tx *gorm.DB, username, operator string, num1, num2 int) error {
 	default:
 		// 事实上，这一步永远不会走到
 	}
-	err := tx.Create(&Problem{
+	err := db.Create(&Problem{
 		UserName: username,
 		Num1:     num1,
 		Num2:     num2,
+		WrongAns: wrongAns,
 		Operator: op,
 	}).Error
 	if err != nil {

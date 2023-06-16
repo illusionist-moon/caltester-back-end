@@ -8,7 +8,6 @@ const (
 	ErrorExistUser    = 20001
 	ErrorNotExistUser = 20002
 	ErrorIncorrectPwd = 20003
-	ErrorPwdNotEqual  = 20004
 
 	ErrorAuthCheckTokenFail    = 30001
 	ErrorAuthCheckTokenTimeout = 30002

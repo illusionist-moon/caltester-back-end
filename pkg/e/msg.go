@@ -8,7 +8,6 @@ var MsgFlags = map[int]string{
 	ErrorExistUser:    "用户名已存在",
 	ErrorNotExistUser: "该用户不存在",
 	ErrorIncorrectPwd: "用户存在但密码错误",
-	ErrorPwdNotEqual:  "两次密码不一致",
 
 	ErrorAuthCheckTokenFail:    "Token鉴权失败",
 	ErrorAuthCheckTokenTimeout: "Token已超时",

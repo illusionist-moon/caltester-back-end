@@ -34,7 +34,7 @@ func GetQuestions(ctx *gin.Context) {
 		"code": e.Success,
 		"msg":  e.GetMsg(e.Success),
 		"data": map[string]any{
-			"count":     10,
+			"count":     question.Count,
 			"operator":  operator,
 			"questions": data,
 		},
@@ -104,7 +104,7 @@ func Judgement(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, gin.H{
 				"code": e.InvalidParams,
 				"data": nil,
-				"msg":  "invalid number count, count should be 3",
+				"msg":  "invalid number count in a question, count must be 3",
 			})
 			return
 		}
@@ -126,7 +126,7 @@ func Judgement(ctx *gin.Context) {
 		if correct {
 			count++
 		} else {
-			err = models.AddProblem(tx, username, op, nums[0], nums[1])
+			err = models.AddProblem(tx, username, op, nums[0], nums[1], nums[2])
 			if err != nil {
 				tx.Rollback()
 				ctx.JSON(http.StatusOK, gin.H{

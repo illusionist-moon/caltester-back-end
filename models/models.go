@@ -1,7 +1,7 @@
 package models
 
 import (
-	"ChildrenMath/pkg/setting"
+	"ChildrenMath/pkg/settings"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -15,7 +15,7 @@ var DB *gorm.DB
 func init() {
 	var err error
 
-	dsn := setting.DSN
+	dsn := settings.DSN
 
 	newLogger := logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags),
 		logger.Config{

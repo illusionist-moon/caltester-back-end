@@ -2,16 +2,25 @@ package models
 
 import "gorm.io/gorm"
 
+const (
+	RankSize = 10
+)
+
 type User struct {
-	UserName string `json:"username" gorm:"column:user_name;primary_key" binding:"required,alphanum,min=1,max=20,excludes= "`
-	Password string `json:"password" gorm:"column:password" binding:"required,min=8"`
-	Points   int    `json:"points" gorm:"column:points" binding:"-"`
+	UserName string `json:"username" gorm:"column:user_name;primary_key"`
+	Password string `json:"password" gorm:"column:password"`
+	Points   int    `json:"points" gorm:"column:points"`
 }
 
-func Exists(username string) (string, bool) {
+type Rank struct {
+	UserName string `json:"username" gorm:"column:user_name"`
+	Points   int    `json:"points" gorm:"column:points"`
+}
+
+func Exists(db *gorm.DB, username string) (string, bool) {
 	var user User
 	// 按照 用户名 进行查找
-	err := DB.Where("user_name = ?", username).First(&user).Error
+	err := db.Where("user_name = ?", username).First(&user).Error
 	if err != nil {
 		return "", false
 	} else {
@@ -19,27 +28,44 @@ func Exists(username string) (string, bool) {
 	}
 }
 
-func AddPoints(tx *gorm.DB, username string, points int) error {
+func AddPoints(db *gorm.DB, username string, points int) error {
 	var target User
-	err := tx.Where("user_name = ?", username).Take(&target).Error
-	//err := tx.Take(&target, username).Error
+	err := db.Where("user_name = ?", username).Take(&target).Error
 	if err != nil {
 		return err
 	}
 	target.Points += points
-	tx.Select("Points").Save(&target)
+	db.Select("Points").Save(&target)
 	return nil
 }
 
-func CreateUser(username, password string) error {
+func CreateUser(db *gorm.DB, username, password string) error {
 	user := &User{
 		UserName: username,
 		Password: password,
 		Points:   0,
 	}
-	err := DB.Create(user).Error
+	err := db.Create(user).Error
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func GetPointsRank(db *gorm.DB) ([]Rank, error) {
+	var res []Rank
+	err := db.Model(&User{}).Select("points, user_name").Limit(RankSize).Order("points desc, user_name").Find(&res).Error
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func GetUserPoints(db *gorm.DB, username string) (int, error) {
+	var res int
+	err := db.Model(&User{}).Select("points").Where("user_name = ?", username).Take(&res).Error
+	if err != nil {
+		return 0, err
+	}
+	return res, nil
 }
