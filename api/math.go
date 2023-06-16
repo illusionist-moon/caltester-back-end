@@ -13,7 +13,7 @@ import (
 )
 
 func GetQuestions(ctx *gin.Context) {
-	operator, ok := ctx.GetQuery("op")
+	op, ok := ctx.GetQuery("op")
 	if !ok {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
@@ -22,8 +22,16 @@ func GetQuestions(ctx *gin.Context) {
 		})
 		return
 	}
-
-	if operator != "plus" && operator != "minus" && operator != "multi" && operator != "div" {
+	switch op {
+	case "plus":
+		op = "+"
+	case "minus":
+		op = "-"
+	case "multi":
+		op = "*"
+	case "div":
+		op = "/"
+	default:
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
 			"msg":  "非法运算符",
@@ -31,19 +39,19 @@ func GetQuestions(ctx *gin.Context) {
 		})
 		return
 	}
-	data := question.GenerateQuestions(operator)
+	data := question.GenerateQuestions(op)
 	ctx.JSON(http.StatusOK, gin.H{
 		"code": e.Success,
 		"msg":  e.GetMsg(e.Success),
 		"data": map[string]any{
 			"count":     question.Count,
-			"operator":  operator,
+			"op":        op,
 			"questions": data,
 		},
 	})
 }
 
-func Judgement(ctx *gin.Context) {
+func JudgeQuestion(ctx *gin.Context) {
 	val, exist := ctx.Get("username")
 	// 下面这种情况理论是不存在，但还是需要写出处理
 	if !exist {
@@ -56,7 +64,7 @@ func Judgement(ctx *gin.Context) {
 	}
 	username := val.(string)
 
-	op, ok := ctx.GetPostForm("operator")
+	op, ok := ctx.GetPostForm("op")
 	if !ok {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
@@ -65,11 +73,28 @@ func Judgement(ctx *gin.Context) {
 		})
 		return
 	}
-	if op != "plus" && op != "minus" && op != "multi" && op != "div" {
+	//if op != "plus" && op != "minus" && op != "multi" && op != "div" {
+	//	ctx.JSON(http.StatusOK, gin.H{
+	//		"code": e.InvalidParams,
+	//		"data": nil,
+	//		"msg":  "invalid operator",
+	//	})
+	//	return
+	//}
+	switch op {
+	case "plus":
+		op = "+"
+	case "minus":
+		op = "-"
+	case "multi":
+		op = "*"
+	case "div":
+		op = "/"
+	default:
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
+			"msg":  "非法运算符",
 			"data": nil,
-			"msg":  "invalid operator",
 		})
 		return
 	}
@@ -87,7 +112,7 @@ func Judgement(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
 			"data": nil,
-			"msg":  "invalid answer count, count should be " + strconv.Itoa(question.Count),
+			"msg":  "invalid answer addPoints, addPoints should be " + strconv.Itoa(question.Count),
 		})
 		return
 	}
@@ -95,9 +120,9 @@ func Judgement(ctx *gin.Context) {
 	// 开启一个事务，保证错题库和积分的一致性
 	tx := models.DB.Begin()
 	var (
-		count int
-		nums  [3]int
-		err   error
+		addPoints int
+		nums      [3]int
+		err       error
 	)
 	for _, q := range answers {
 		numStrings := strings.Split(q, ",")
@@ -106,7 +131,7 @@ func Judgement(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, gin.H{
 				"code": e.InvalidParams,
 				"data": nil,
-				"msg":  "invalid number count in a question, count must be 3",
+				"msg":  "invalid number addPoints in a question, addPoints must be 3",
 			})
 			return
 		}
@@ -126,7 +151,7 @@ func Judgement(ctx *gin.Context) {
 		}
 		correct := question.Judge(nums, op)
 		if correct {
-			count++
+			addPoints++
 		} else {
 			err = models.AddProblem(tx, username, op, nums[0], nums[1], nums[2])
 			if err != nil {
@@ -140,7 +165,7 @@ func Judgement(ctx *gin.Context) {
 			}
 		}
 	}
-	err = models.AddPoints(tx, username, count)
+	err = models.AddPoints(tx, username, addPoints)
 	if err != nil {
 		tx.Rollback()
 		ctx.JSON(http.StatusOK, gin.H{
@@ -153,7 +178,7 @@ func Judgement(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"code": e.Success,
-		"data": count,
+		"data": addPoints,
 		"msg":  "success",
 	})
 	tx.Commit()
@@ -222,7 +247,7 @@ func GetWrongList(ctx *gin.Context) {
 	return
 }
 
-func RedoWrongQuestion(ctx *gin.Context) {
+func GetRedoProblem(ctx *gin.Context) {
 	val, exist := ctx.Get("username")
 	// 下面这种情况理论是不存在，但还是需要写出处理
 	if !exist {
@@ -253,4 +278,120 @@ func RedoWrongQuestion(ctx *gin.Context) {
 		},
 		"msg": e.GetMsg(e.Success),
 	})
+}
+
+func JudgeRedoProblem(ctx *gin.Context) {
+	val, exist := ctx.Get("username")
+	// 下面这种情况理论是不存在，但还是需要写出处理
+	if !exist {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.ErrorNotExistUser,
+			"data": nil,
+			"msg":  "用户获取出现问题",
+		})
+		return
+	}
+	username := val.(string)
+
+	answers, ansOK := ctx.GetPostFormArray("answer[]")
+	if !ansOK {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"data": nil,
+			"msg":  "miss answers",
+		})
+		return
+	}
+
+	// 开启一个事务，保证错题库和积分的一致性
+	tx := models.DB.Begin()
+	var (
+		addPoints   int
+		id          int
+		nums        [3]int // 依次为 num1, num2, res
+		operator    string
+		err         error
+		deleteIDSet []int
+	)
+	for _, ans := range answers {
+		data := strings.Split(ans, ",")
+		if len(data) != 5 {
+			tx.Rollback()
+			ctx.JSON(http.StatusOK, gin.H{
+				"code": e.InvalidParams,
+				"data": nil,
+				"msg":  "invalid data addPoints in an answer, addPoints must be 5: id, num1, num2, ans, operator",
+			})
+			return
+		}
+
+		id, err = strconv.Atoi(data[0])
+		if err != nil {
+			tx.Rollback()
+			ctx.JSON(http.StatusOK, gin.H{
+				"code": e.InvalidParams,
+				"data": nil,
+				//"msg":  "id convert into int failed",
+				"msg": err.Error(),
+			})
+			return
+		}
+		for i := 1; i <= 3; i++ {
+			nums[i-1], err = strconv.Atoi(data[i])
+			if err != nil {
+				tx.Rollback()
+				ctx.JSON(http.StatusOK, gin.H{
+					"code": e.InvalidParams,
+					"data": nil,
+					"msg":  "number convert into int failed",
+				})
+				return
+			}
+		}
+		operator = data[4]
+		if question.Judge(nums, operator) {
+			addPoints++
+			deleteIDSet = append(deleteIDSet, id)
+		}
+	}
+	err = models.AddPoints(tx, username, addPoints)
+	if err != nil {
+		tx.Rollback()
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"data": nil,
+			"msg":  "add point failed",
+		})
+		return
+	}
+
+	var deleteCount int64
+	deleteCount, err = models.DeleteRedoProblem(tx, deleteIDSet)
+	if err != nil {
+		tx.Rollback()
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"data": nil,
+			//"msg":  "delete wrong problems failed",
+			"msg": err.Error(),
+		})
+		return
+	}
+	fmt.Println(deleteCount)
+	if int(deleteCount) != len(deleteIDSet) {
+		tx.Rollback()
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"data": nil,
+			"msg":  "delete wrong problems failed",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": e.Success,
+		"data": addPoints,
+		"msg":  "success",
+	})
+	tx.Commit()
 }

@@ -1,6 +1,8 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 const (
 	WrongListOffset  = 10
@@ -19,8 +21,8 @@ type Problem struct {
 type WrongListItem struct {
 	Num1     int    `json:"num1" gorm:"column:num1"`
 	Num2     int    `json:"num2" gorm:"column:num2"`
-	WrongAns int    `json:"wrong_ans" gorm:"column:wrong_ans"`
-	Operator string `json:"operator" gorm:"column:operator"`
+	WrongAns int    `json:"ans" gorm:"column:wrong_ans"`
+	Operator string `json:"op" gorm:"column:operator"`
 }
 
 type RedoProblem struct {
@@ -30,20 +32,7 @@ type RedoProblem struct {
 	Operator string `json:"operator" gorm:"column:operator;type:char(1)"`
 }
 
-func AddProblem(db *gorm.DB, username, operator string, num1, num2, wrongAns int) error {
-	var op string
-	switch operator {
-	case "plus":
-		op = "+"
-	case "minus":
-		op = "-"
-	case "multi":
-		op = "*"
-	case "div":
-		op = "/"
-	default:
-		// 事实上，这一步永远不会走到
-	}
+func AddProblem(db *gorm.DB, username, op string, num1, num2, wrongAns int) error {
 	err := db.Create(&Problem{
 		UserName: username,
 		Num1:     num1,
@@ -78,7 +67,15 @@ func GetRedoProblem(db *gorm.DB, username string) ([]RedoProblem, error) {
 	return res, nil
 }
 
-//func DeleteProblem(id int) bool {
-//	DB.Where("user_id = ?", id).Delete(&Problem{})
-//	return true
-//}
+func DeleteRedoProblem(db *gorm.DB, IDSet []int) (int64, error) {
+	var count int64
+	err := db.Model(&Problem{}).Where("id in ?", IDSet).Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	err = db.Where("id in ?", IDSet).Delete(&Problem{}).Error
+	if err != nil {
+		return count, err
+	}
+	return count, nil
+}
