@@ -73,14 +73,6 @@ func JudgeQuestion(ctx *gin.Context) {
 		})
 		return
 	}
-	//if op != "plus" && op != "minus" && op != "multi" && op != "div" {
-	//	ctx.JSON(http.StatusOK, gin.H{
-	//		"code": e.InvalidParams,
-	//		"data": nil,
-	//		"msg":  "invalid operator",
-	//	})
-	//	return
-	//}
 	switch op {
 	case "plus":
 		op = "+"
@@ -309,7 +301,7 @@ func JudgeRedoProblem(ctx *gin.Context) {
 		addPoints   int
 		id          int
 		nums        [3]int // 依次为 num1, num2, res
-		operator    string
+		op          string
 		err         error
 		deleteIDSet []int
 	)
@@ -320,7 +312,7 @@ func JudgeRedoProblem(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, gin.H{
 				"code": e.InvalidParams,
 				"data": nil,
-				"msg":  "invalid data addPoints in an answer, addPoints must be 5: id, num1, num2, ans, operator",
+				"msg":  "invalid data count in an answer, count must be 5: id, num1, num2, ans, op",
 			})
 			return
 		}
@@ -331,8 +323,7 @@ func JudgeRedoProblem(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, gin.H{
 				"code": e.InvalidParams,
 				"data": nil,
-				//"msg":  "id convert into int failed",
-				"msg": err.Error(),
+				"msg":  err.Error(),
 			})
 			return
 		}
@@ -348,8 +339,16 @@ func JudgeRedoProblem(ctx *gin.Context) {
 				return
 			}
 		}
-		operator = data[4]
-		if question.Judge(nums, operator) {
+		op = data[4]
+		if op != "+" && op != "-" && op != "*" && op != "/" {
+			ctx.JSON(http.StatusOK, gin.H{
+				"code": e.InvalidParams,
+				"data": nil,
+				"msg":  "invalid op",
+			})
+			return
+		}
+		if question.Judge(nums, op) {
 			addPoints++
 			deleteIDSet = append(deleteIDSet, id)
 		}
@@ -372,8 +371,7 @@ func JudgeRedoProblem(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
 			"data": nil,
-			//"msg":  "delete wrong problems failed",
-			"msg": err.Error(),
+			"msg":  err.Error(),
 		})
 		return
 	}
