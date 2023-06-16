@@ -4,7 +4,9 @@ import (
 	"ChildrenMath/models"
 	"ChildrenMath/pkg/e"
 	"ChildrenMath/service/question"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -155,4 +157,100 @@ func Judgement(ctx *gin.Context) {
 		"msg":  "success",
 	})
 	tx.Commit()
+}
+
+func GetWrongList(ctx *gin.Context) {
+	val, exist := ctx.Get("username")
+	// 下面这种情况理论是不存在，但还是需要写出处理
+	if !exist {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.ErrorNotExistUser,
+			"data": nil,
+			"msg":  "用户获取出现问题",
+		})
+		return
+	}
+	username := val.(string)
+
+	pageStr, ok := ctx.GetQuery("page")
+	if !ok {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"data": nil,
+			"msg":  "miss page",
+		})
+		return
+	}
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"data": nil,
+			"msg":  "invalid page",
+		})
+		return
+	}
+
+	wrongItems, total, getErr := models.GetWrongList(models.DB, username, page)
+	if getErr != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"data": nil,
+			"msg":  "拉取错题列表失败",
+		})
+		return
+	}
+	fmt.Println(total)
+	totalPages := int(math.Ceil(float64(total) / models.WrongListOffset))
+	if page > totalPages {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"data": nil,
+			"msg":  "页号溢出，最大为" + strconv.Itoa(totalPages),
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": e.Success,
+		"data": map[string]any{
+			"record":       wrongItems,
+			"record_count": len(wrongItems),
+			"total_page":   totalPages,
+		},
+		"msg": e.GetMsg(e.Success),
+	})
+	return
+}
+
+func RedoWrongQuestion(ctx *gin.Context) {
+	val, exist := ctx.Get("username")
+	// 下面这种情况理论是不存在，但还是需要写出处理
+	if !exist {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.ErrorNotExistUser,
+			"data": nil,
+			"msg":  "用户获取出现问题",
+		})
+		return
+	}
+	username := val.(string)
+
+	res, err := models.GetRedoProblem(models.DB, username)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"data": nil,
+			"msg":  "拉取错误题目失败",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": e.Success,
+		"data": map[string]any{
+			"count":     len(res),
+			"questions": res,
+		},
+		"msg": e.GetMsg(e.Success),
+	})
 }

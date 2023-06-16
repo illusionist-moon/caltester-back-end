@@ -24,8 +24,9 @@ func InitRouter() *gin.Engine {
 		authUser.GET("/question", api.GetQuestions)
 		authUser.POST("/judgement", api.Judgement)
 
-		authUser.GET("/wrong-list")
-		authUser.POST("/delete")
+		authUser.GET("/wrong-list", api.GetWrongList)
+		authUser.GET("/wrong-redo", api.RedoWrongQuestion)
+		authUser.POST("/wrong-judge")
 
 		authUser.GET("/logout", api.Logout)
 
