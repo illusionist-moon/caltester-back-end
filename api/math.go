@@ -100,11 +100,12 @@ func JudgeQuestion(ctx *gin.Context) {
 		})
 		return
 	}
+	fmt.Println(len(answers))
 	if len(answers) != question.Count {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
 			"data": nil,
-			"msg":  "invalid answer addPoints, addPoints should be " + strconv.Itoa(question.Count),
+			"msg":  "invalid answer count, count should be " + strconv.Itoa(question.Count),
 		})
 		return
 	}
