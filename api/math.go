@@ -4,6 +4,7 @@ import (
 	"ChildrenMath/models"
 	"ChildrenMath/pkg/e"
 	"ChildrenMath/service/question"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"math"
@@ -91,7 +92,7 @@ func JudgeQuestion(ctx *gin.Context) {
 		return
 	}
 
-	answers, ansOK := ctx.GetPostFormArray("answer[]")
+	answers, ansOK := ctx.GetPostForm("answers")
 	if !ansOK {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
@@ -100,8 +101,19 @@ func JudgeQuestion(ctx *gin.Context) {
 		})
 		return
 	}
-	fmt.Println(len(answers))
-	if len(answers) != question.Count {
+	var ansSlice [][]int
+	unmarshalErr := json.Unmarshal([]byte(answers), &ansSlice)
+	if unmarshalErr != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"data": nil,
+			"msg":  "answers反序列化失败",
+		})
+		return
+	}
+	fmt.Println(ansSlice)
+	fmt.Printf("%v\n", ansSlice)
+	if len(ansSlice) != question.Count {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
 			"data": nil,
@@ -114,39 +126,15 @@ func JudgeQuestion(ctx *gin.Context) {
 	tx := models.DB.Begin()
 	var (
 		addPoints int
-		nums      [3]int
 		err       error
 	)
-	for _, q := range answers {
-		numStrings := strings.Split(q, ",")
-		if len(numStrings) != 3 {
-			tx.Rollback()
-			ctx.JSON(http.StatusOK, gin.H{
-				"code": e.InvalidParams,
-				"data": nil,
-				"msg":  "invalid number addPoints in a question, addPoints must be 3",
-			})
-			return
-		}
 
-		for i := 0; i < 3; i++ {
-			nums[i], err = strconv.Atoi(numStrings[i])
-			if err != nil {
-				tx.Rollback()
-				ctx.JSON(http.StatusOK, gin.H{
-					"code": e.InvalidParams,
-					"data": nil,
-					"msg":  "convert into int failed",
-				})
-				return
-			}
-
-		}
-		correct := question.Judge(nums, op)
+	for i := 0; i < question.Count; i++ {
+		correct := question.Judge(ansSlice[i], op)
 		if correct {
 			addPoints++
 		} else {
-			err = models.AddProblem(tx, username, op, nums[0], nums[1], nums[2])
+			err = models.AddProblem(tx, username, op, ansSlice[i][0], ansSlice[i][1], ansSlice[i][2])
 			if err != nil {
 				tx.Rollback()
 				ctx.JSON(http.StatusOK, gin.H{
@@ -218,7 +206,6 @@ func GetWrongList(ctx *gin.Context) {
 		})
 		return
 	}
-	fmt.Println(total)
 	totalPages := int(math.Ceil(float64(total) / models.WrongListOffset))
 	if page > totalPages {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -301,7 +288,7 @@ func JudgeRedoProblem(ctx *gin.Context) {
 	var (
 		addPoints   int
 		id          int
-		nums        [3]int // 依次为 num1, num2, res
+		nums        = make([]int, 3) // 依次为 num1, num2, res
 		op          string
 		err         error
 		deleteIDSet []int
@@ -376,7 +363,6 @@ func JudgeRedoProblem(ctx *gin.Context) {
 		})
 		return
 	}
-	fmt.Println(deleteCount)
 	if int(deleteCount) != len(deleteIDSet) {
 		tx.Rollback()
 		ctx.JSON(http.StatusOK, gin.H{

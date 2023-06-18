@@ -57,7 +57,7 @@ func GenerateQuestions(operator string) []*Questions {
 	return ans
 }
 
-func Judge(nums [3]int, op string) bool {
+func Judge(nums []int, op string) bool {
 	switch op {
 	case "+":
 		return nums[0]+nums[1] == nums[2]
