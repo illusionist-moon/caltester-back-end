@@ -5,7 +5,6 @@ import (
 	"ChildrenMath/pkg/e"
 	"ChildrenMath/service/question"
 	"encoding/json"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"math"
 	"net/http"
@@ -111,8 +110,8 @@ func JudgeQuestion(ctx *gin.Context) {
 		})
 		return
 	}
-	fmt.Println(ansSlice)
-	fmt.Printf("%v\n", ansSlice)
+	//fmt.Println(ansSlice)
+	//fmt.Printf("%v\n", ansSlice)
 	if len(ansSlice) != question.Count {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
@@ -261,18 +260,6 @@ func GetRedoProblem(ctx *gin.Context) {
 }
 
 func JudgeRedoProblem(ctx *gin.Context) {
-	val, exist := ctx.Get("username")
-	// 下面这种情况理论是不存在，但还是需要写出处理
-	if !exist {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.ErrorNotExistUser,
-			"data": nil,
-			"msg":  "用户获取出现问题",
-		})
-		return
-	}
-	username := val.(string)
-
 	answers, ansOK := ctx.GetPostFormArray("answer[]")
 	if !ansOK {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -283,10 +270,10 @@ func JudgeRedoProblem(ctx *gin.Context) {
 		return
 	}
 
-	// 开启一个事务，保证错题库和积分的一致性
+	// 开启一个事务，保证原子性
 	tx := models.DB.Begin()
 	var (
-		addPoints   int
+		correct     int
 		id          int
 		nums        = make([]int, 3) // 依次为 num1, num2, res
 		op          string
@@ -329,6 +316,7 @@ func JudgeRedoProblem(ctx *gin.Context) {
 		}
 		op = data[4]
 		if op != "+" && op != "-" && op != "*" && op != "/" {
+			tx.Rollback()
 			ctx.JSON(http.StatusOK, gin.H{
 				"code": e.InvalidParams,
 				"data": nil,
@@ -337,19 +325,9 @@ func JudgeRedoProblem(ctx *gin.Context) {
 			return
 		}
 		if question.Judge(nums, op) {
-			addPoints++
+			correct++
 			deleteIDSet = append(deleteIDSet, id)
 		}
-	}
-	err = models.AddPoints(tx, username, addPoints)
-	if err != nil {
-		tx.Rollback()
-		ctx.JSON(http.StatusOK, gin.H{
-			"code": e.Error,
-			"data": nil,
-			"msg":  "add point failed",
-		})
-		return
 	}
 
 	var deleteCount int64
@@ -375,7 +353,7 @@ func JudgeRedoProblem(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"code": e.Success,
-		"data": addPoints,
+		"data": correct,
 		"msg":  "success",
 	})
 	tx.Commit()

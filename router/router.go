@@ -31,6 +31,7 @@ func InitRouter() *gin.Engine {
 		authUser.GET("/logout", api.Logout)
 
 		authUser.GET("/rank", api.GetPointsRank)
+		authUser.GET("/points", api.GetOwnPoints)
 	}
 
 	return r

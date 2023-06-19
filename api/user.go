@@ -5,7 +5,6 @@ import (
 	"ChildrenMath/pkg/e"
 	"ChildrenMath/pkg/util"
 	"ChildrenMath/pkg/validation"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
@@ -35,8 +34,8 @@ func Login(ctx *gin.Context) {
 		})
 		return
 	}
-	fmt.Println(getPassword)
-	fmt.Println(password)
+	//fmt.Println(getPassword)
+	//fmt.Println(password)
 	// 校验密码
 	if !util.ComparePwd(getPassword, password) {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -160,5 +159,34 @@ func GetPointsRank(ctx *gin.Context) {
 			"own_points": ownPoints,
 		},
 		"msg": e.GetMsg(e.Success),
+	})
+}
+
+func GetOwnPoints(ctx *gin.Context) {
+	val, exist := ctx.Get("username")
+	// 下面这种情况理论是不存在，但还是需要写出处理
+	if !exist {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":   e.ErrorNotExistUser,
+			"points": nil,
+			"msg":    "用户获取出现问题",
+		})
+		return
+	}
+	username := val.(string)
+
+	ownPoints, err := models.GetUserPoints(models.DB, username)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code":   e.Error,
+			"points": nil,
+			"msg":    "个人积分拉取失败",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":   e.Success,
+		"points": ownPoints,
+		"msg":    e.GetMsg(e.Success),
 	})
 }
