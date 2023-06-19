@@ -1,6 +1,8 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 const (
 	RankSize = 10
@@ -20,7 +22,7 @@ type Rank struct {
 func Exists(db *gorm.DB, username string) (string, bool) {
 	var user User
 	// 按照 用户名 进行查找
-	err := db.Where("user_name = ?", username).First(&user).Error
+	err := db.Select("password").Where("user_name = ?", username).First(&user).Error
 	if err != nil {
 		return "", false
 	} else {

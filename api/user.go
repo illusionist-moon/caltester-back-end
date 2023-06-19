@@ -5,6 +5,7 @@ import (
 	"ChildrenMath/pkg/e"
 	"ChildrenMath/pkg/util"
 	"ChildrenMath/pkg/validation"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
@@ -34,9 +35,10 @@ func Login(ctx *gin.Context) {
 		})
 		return
 	}
-
+	fmt.Println(getPassword)
+	fmt.Println(password)
 	// 校验密码
-	if password != getPassword {
+	if !util.ComparePwd(getPassword, password) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.ErrorIncorrectPwd,
 			"msg":  e.GetMsg(e.ErrorIncorrectPwd),
@@ -86,8 +88,15 @@ func Register(ctx *gin.Context) {
 		})
 		return
 	}
-
-	err := models.CreateUser(models.DB, username, password)
+	hash, err := util.GetBcryptPwd(password)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"msg":  "用户密码加密时失败",
+		})
+		return
+	}
+	err = models.CreateUser(models.DB, username, hash)
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
