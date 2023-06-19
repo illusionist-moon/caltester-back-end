@@ -8,12 +8,12 @@ USE children_math;
 
 CREATE TABLE users(
 	user_name VARCHAR(20) PRIMARY KEY,
-	`password` VARCHAR(50),
+	`password` CHAR(60),
 	points INT
 )ENGINE=INNODB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_bin;
 
 ALTER TABLE users
-ADD INDEX idx_users_points_username(points DESC, user_name ASC);
+ADD INDEX idx_users_points_username(points desc, user_name asc);
 
 -- DROP TABLE problems;
 
