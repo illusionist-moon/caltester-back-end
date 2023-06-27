@@ -47,6 +47,6 @@ func init() {
 	})
 
 	if err != nil {
-		log.Println(err)
+		panic(err)
 	}
 }

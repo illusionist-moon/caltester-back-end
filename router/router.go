@@ -17,6 +17,8 @@ func InitRouter() *gin.Engine {
 	r.POST("/register", api.Register)
 	r.POST("/login", api.Login)
 
+	r.POST("/logout", api.Logout)
+
 	// 用户组私有
 	authUser := r.Group("/user")
 	authUser.Use(middleware.AuthUserCheck())
@@ -27,8 +29,6 @@ func InitRouter() *gin.Engine {
 		authUser.GET("/wrong-list", api.GetWrongList)
 		authUser.GET("/wrong-redo", api.GetRedoProblem)
 		authUser.POST("/wrong-judge", api.JudgeRedoProblem)
-
-		authUser.GET("/logout", api.Logout)
 
 		authUser.GET("/rank", api.GetPointsRank)
 		authUser.GET("/points", api.GetOwnPoints)

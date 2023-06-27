@@ -3,13 +3,14 @@ package api
 import (
 	"ChildrenMath/models"
 	"ChildrenMath/pkg/e"
+	"ChildrenMath/pkg/util"
 	"ChildrenMath/service/question"
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"math"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 func GetQuestions(ctx *gin.Context) {
@@ -101,7 +102,7 @@ func JudgeQuestion(ctx *gin.Context) {
 		return
 	}
 	var ansSlice [][]int
-	unmarshalErr := json.Unmarshal([]byte(answers), &ansSlice)
+	unmarshalErr := json.Unmarshal(util.Str2Byte(answers), &ansSlice)
 	if unmarshalErr != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
@@ -110,8 +111,6 @@ func JudgeQuestion(ctx *gin.Context) {
 		})
 		return
 	}
-	//fmt.Println(ansSlice)
-	//fmt.Printf("%v\n", ansSlice)
 	if len(ansSlice) != question.Count {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
@@ -260,7 +259,7 @@ func GetRedoProblem(ctx *gin.Context) {
 }
 
 func JudgeRedoProblem(ctx *gin.Context) {
-	answers, ansOK := ctx.GetPostFormArray("answer[]")
+	answers, ansOK := ctx.GetPostForm("answers")
 	if !ansOK {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.InvalidParams,
@@ -270,51 +269,36 @@ func JudgeRedoProblem(ctx *gin.Context) {
 		return
 	}
 
+	var dataArray [][]interface{}
+	unmarshalErr := json.Unmarshal(util.Str2Byte(answers), &dataArray)
+
+	if unmarshalErr != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.InvalidParams,
+			"data": nil,
+			"msg":  "answers反序列化失败",
+		})
+		return
+	}
+
 	// 开启一个事务，保证原子性
 	tx := models.DB.Begin()
 	var (
-		correct     int
-		id          int
-		nums        = make([]int, 3) // 依次为 num1, num2, res
-		op          string
-		err         error
-		deleteIDSet []int
+		correctCount int
+		id           int
+		nums         = make([]int, 3) // 依次为 num1, num2, res
+		op           string
+		err          error
+		deleteIDSet  []int
 	)
-	for _, ans := range answers {
-		data := strings.Split(ans, ",")
-		if len(data) != 5 {
-			tx.Rollback()
-			ctx.JSON(http.StatusOK, gin.H{
-				"code": e.InvalidParams,
-				"data": nil,
-				"msg":  "invalid data count in an answer, count must be 5: id, num1, num2, ans, op",
-			})
-			return
-		}
+	for _, data := range dataArray {
 
-		id, err = strconv.Atoi(data[0])
-		if err != nil {
-			tx.Rollback()
-			ctx.JSON(http.StatusOK, gin.H{
-				"code": e.InvalidParams,
-				"data": nil,
-				"msg":  err.Error(),
-			})
-			return
+		id = int(data[0].(float64))
+		for i, val := range data[1].([]interface{}) {
+			nums[i] = int(val.(float64))
 		}
-		for i := 1; i <= 3; i++ {
-			nums[i-1], err = strconv.Atoi(data[i])
-			if err != nil {
-				tx.Rollback()
-				ctx.JSON(http.StatusOK, gin.H{
-					"code": e.InvalidParams,
-					"data": nil,
-					"msg":  "number convert into int failed",
-				})
-				return
-			}
-		}
-		op = data[4]
+		op = data[2].(string)
+
 		if op != "+" && op != "-" && op != "*" && op != "/" {
 			tx.Rollback()
 			ctx.JSON(http.StatusOK, gin.H{
@@ -325,9 +309,10 @@ func JudgeRedoProblem(ctx *gin.Context) {
 			return
 		}
 		if question.Judge(nums, op) {
-			correct++
+			correctCount++
 			deleteIDSet = append(deleteIDSet, id)
 		}
+		fmt.Println(deleteIDSet)
 	}
 
 	var deleteCount int64
@@ -353,7 +338,7 @@ func JudgeRedoProblem(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"code": e.Success,
-		"data": correct,
+		"data": correctCount,
 		"msg":  "success",
 	})
 	tx.Commit()
