@@ -71,3 +71,16 @@ func GetUserPoints(db *gorm.DB, username string) (int, error) {
 	}
 	return res, nil
 }
+
+func GetUserRank(db *gorm.DB, username string) (int, error) {
+	var (
+		res int64
+		err error
+	)
+	subQuery := db.Model(&User{}).Select("points").Where("user_name = ?", username)
+	err = db.Model(&User{}).Where("points > (?)", subQuery).Find(&User{}).Count(&res).Error
+	if err != nil {
+		return 0, err
+	}
+	return int(res) + 1, nil
+}

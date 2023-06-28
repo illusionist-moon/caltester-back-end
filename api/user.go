@@ -131,8 +131,14 @@ func GetPointsRank(ctx *gin.Context) {
 	}
 	username := val.(string)
 
-	ownPoints, err1 := models.GetUserPoints(models.DB, username)
-	if err1 != nil {
+	var (
+		err       error
+		ownPoints int
+		ownRank   int
+		rank      []models.Rank
+	)
+	ownPoints, err = models.GetUserPoints(models.DB, username)
+	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
 			"data": nil,
@@ -141,8 +147,18 @@ func GetPointsRank(ctx *gin.Context) {
 		return
 	}
 
-	rank, err2 := models.GetPointsRank(models.DB)
-	if err2 != nil {
+	ownRank, err = models.GetUserRank(models.DB, username)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": e.Error,
+			"data": nil,
+			"msg":  "个人排名拉取失败",
+		})
+		return
+	}
+
+	rank, err = models.GetPointsRank(models.DB)
+	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": e.Error,
 			"data": nil,
@@ -157,6 +173,7 @@ func GetPointsRank(ctx *gin.Context) {
 			"max_count":  models.RankSize,
 			"rank":       rank,
 			"own_points": ownPoints,
+			"own_rank":   ownRank,
 		},
 		"msg": e.GetMsg(e.Success),
 	})
